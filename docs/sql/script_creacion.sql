@@ -203,6 +203,15 @@ CREATE TABLE order_statuses (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+INSERT INTO order_statuses (name, description) VALUES
+    ('pending', 'Pendiente de confirmación'),
+    ('confirmed', 'Confirmada'),
+    ('processing', 'En preparación'),
+    ('shipped', 'Enviada'),
+    ('delivered', 'Entregada'),
+    ('cancelled', 'Cancelada')
+ON CONFLICT (name) DO NOTHING;
+
 -- ----------------------------------------------------------------------------
 
 CREATE TABLE shipment_statuses (
@@ -212,6 +221,14 @@ CREATE TABLE shipment_statuses (
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT now()
 );
+
+INSERT INTO shipment_statuses (name, description) VALUES
+    ('pending', 'Pendiente'),
+    ('shipped', 'Enviada'),
+    ('in_transit', 'En tránsito'),
+    ('delivered', 'Entregada'),
+    ('returned', 'Devuelta')
+ON CONFLICT (name) DO NOTHING;
 
 -- ----------------------------------------------------------------------------
 
@@ -223,6 +240,13 @@ CREATE TABLE payment_statuses (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+INSERT INTO payment_statuses (name, description) VALUES
+    ('pending', 'Pendiente'),
+    ('approved', 'Aprobado'),
+    ('rejected', 'Rechazado'),
+    ('refunded', 'Reembolsado')
+ON CONFLICT (name) DO NOTHING;
+
 -- ----------------------------------------------------------------------------
 
 CREATE TABLE payment_methods (
@@ -233,6 +257,15 @@ CREATE TABLE payment_methods (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+INSERT INTO payment_methods (name, description) VALUES
+    ('mercado_pago', 'Mercado Pago'),
+    ('go_cuotas', 'Go Cuotas (Débito)'),
+    ('modo', 'MODO (Billetera)'),
+    ('credit_card', 'Tarjeta genérica'),
+    ('bank_transfer', 'Transferencia bancaria'),
+    ('cash', 'Efectivo')
+ON CONFLICT (name) DO NOTHING;
+
 -- ----------------------------------------------------------------------------
 
 CREATE TABLE countries (
@@ -242,6 +275,11 @@ CREATE TABLE countries (
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT now()
 );
+
+INSERT INTO countries (name, code) VALUES
+    ('Argentina', 'AR'),
+    ('Estados Unidos', 'US')
+ON CONFLICT (code) DO NOTHING;
 
 -- ----------------------------------------------------------------------------
 
@@ -254,6 +292,14 @@ CREATE TABLE provinces (
     created_at TIMESTAMPTZ DEFAULT now(),
     CONSTRAINT unique_province_code_country UNIQUE(country_id, code)
 );
+
+INSERT INTO provinces (country_id, name, code) VALUES
+    ((SELECT id FROM countries WHERE code = 'AR' LIMIT 1), 'Buenos Aires', 'BUE'),
+    ((SELECT id FROM countries WHERE code = 'AR' LIMIT 1), 'Córdoba', 'CBA'),
+    ((SELECT id FROM countries WHERE code = 'AR' LIMIT 1), 'Santa Fe', 'SFE'),
+    ((SELECT id FROM countries WHERE code = 'US' LIMIT 1), 'California', 'CA'),
+    ((SELECT id FROM countries WHERE code = 'US' LIMIT 1), 'Texas', 'TX')
+ON CONFLICT (country_id, code) DO NOTHING;
 
 
 -- ============================================================================
@@ -1108,57 +1154,7 @@ WHERE oi.is_active = TRUE;
 
 
 -- ============================================================================
--- DATOS DE EJEMPLO E INICIALIZACIÓN
+-- FIN DEL SCRIPT
+-- (Las semillas de inicialización por defecto se definieron directamente debajo
+-- de la creación de cada una de sus respectivas tablas de catálogo/referencia).
 -- ============================================================================
-
--- Estados de orden
-INSERT INTO order_statuses (name, description) VALUES
-    ('pending', 'Pendiente de confirmación'),
-    ('confirmed', 'Confirmada'),
-    ('processing', 'En preparación'),
-    ('shipped', 'Enviada'),
-    ('delivered', 'Entregada'),
-    ('cancelled', 'Cancelada')
-ON CONFLICT (name) DO NOTHING;
-
--- Estados de envío
-INSERT INTO shipment_statuses (name, description) VALUES
-    ('pending', 'Pendiente'),
-    ('shipped', 'Enviada'),
-    ('in_transit', 'En tránsito'),
-    ('delivered', 'Entregada'),
-    ('returned', 'Devuelta')
-ON CONFLICT (name) DO NOTHING;
-
--- Estados de pago
-INSERT INTO payment_statuses (name, description) VALUES
-    ('pending', 'Pendiente'),
-    ('approved', 'Aprobado'),
-    ('rejected', 'Rechazado'),
-    ('refunded', 'Reembolsado')
-ON CONFLICT (name) DO NOTHING;
-
--- Métodos de pago
-INSERT INTO payment_methods (name, description) VALUES
-    ('mercado_pago', 'Mercado Pago'),
-    ('go_cuotas', 'Go Cuotas (Débito)'),
-    ('modo', 'MODO (Billetera)'),
-    ('credit_card', 'Tarjeta genérica'),
-    ('bank_transfer', 'Transferencia bancaria'),
-    ('cash', 'Efectivo')
-ON CONFLICT (name) DO NOTHING;
-
--- Países
-INSERT INTO countries (name, code) VALUES
-    ('Argentina', 'AR'),
-    ('Estados Unidos', 'US')
-ON CONFLICT (code) DO NOTHING;
-
--- Provincias (Argentina)
-INSERT INTO provinces (country_id, name, code) VALUES
-    ((SELECT id FROM countries WHERE code = 'AR' LIMIT 1), 'Buenos Aires', 'BUE'),
-    ((SELECT id FROM countries WHERE code = 'AR' LIMIT 1), 'Córdoba', 'CBA'),
-    ((SELECT id FROM countries WHERE code = 'AR' LIMIT 1), 'Santa Fe', 'SFE'),
-    ((SELECT id FROM countries WHERE code = 'US' LIMIT 1), 'California', 'CA'),
-    ((SELECT id FROM countries WHERE code = 'US' LIMIT 1), 'Texas', 'TX')
-ON CONFLICT (country_id, code) DO NOTHING;
