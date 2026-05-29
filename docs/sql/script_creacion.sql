@@ -269,8 +269,7 @@ CREATE INDEX idx_tenant_members_active ON tenant_members(tenant_id, is_active) W
 -- ============================================================================
 
 CREATE TABLE tenant_settings (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL UNIQUE REFERENCES tenants(id) ON DELETE CASCADE,
+    tenant_id UUID PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
     currency_id UUID NOT NULL REFERENCES currencies(id),
     -- Información del negocio
     business_name TEXT,
@@ -287,8 +286,6 @@ CREATE TABLE tenant_settings (
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
-
-CREATE INDEX idx_tenant_settings_tenant ON tenant_settings(tenant_id);
 
 
 -- ============================================================================
@@ -682,7 +679,6 @@ CREATE INDEX idx_carts_status ON carts(tenant_id, status);
 -- ----------------------------------------------------------------------------
 
 CREATE TABLE cart_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     cart_id UUID NOT NULL,
     product_variant_id UUID NOT NULL,
@@ -690,7 +686,7 @@ CREATE TABLE cart_items (
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
-    CONSTRAINT unique_cart_items_id_tenant UNIQUE (id, tenant_id),
+    PRIMARY KEY (tenant_id, cart_id, product_variant_id),
     CONSTRAINT fk_cart_items_cart_tenant
         FOREIGN KEY (cart_id, tenant_id)
         REFERENCES carts(id, tenant_id)
@@ -698,12 +694,9 @@ CREATE TABLE cart_items (
     CONSTRAINT fk_cart_items_variant_tenant
         FOREIGN KEY (product_variant_id, tenant_id)
         REFERENCES product_variants(id, tenant_id)
-        ON DELETE CASCADE,
-    -- Evita que la misma variante se repita en el mismo carrito (se debe sumar la cantidad)
-    CONSTRAINT unique_cart_variant UNIQUE (cart_id, product_variant_id)
+        ON DELETE CASCADE
 );
 
-CREATE INDEX idx_cart_items_tenant ON cart_items(tenant_id);
 CREATE INDEX idx_cart_items_cart ON cart_items(cart_id);
 
 
@@ -749,7 +742,6 @@ CREATE INDEX idx_orders_expiration ON orders(payment_expires_at) WHERE payment_e
 -- ============================================================================
 
 CREATE TABLE order_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     order_id UUID NOT NULL,
     product_variant_id UUID NOT NULL,
@@ -758,7 +750,7 @@ CREATE TABLE order_items (
     subtotal NUMERIC(12,2) NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT now(),
-    CONSTRAINT unique_order_items_id_tenant UNIQUE(id, tenant_id),
+    PRIMARY KEY (tenant_id, order_id, product_variant_id),
     CONSTRAINT fk_order_items_order_tenant
         FOREIGN KEY (order_id, tenant_id)
         REFERENCES orders(id, tenant_id)
@@ -769,7 +761,6 @@ CREATE TABLE order_items (
         ON DELETE RESTRICT
 );
 
-CREATE INDEX idx_order_items_tenant ON order_items(tenant_id);
 CREATE INDEX idx_order_items_order ON order_items(order_id);
 
 
@@ -778,7 +769,6 @@ CREATE INDEX idx_order_items_order ON order_items(order_id);
 -- ============================================================================
 
 CREATE TABLE order_shipments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     order_id UUID NOT NULL,
     recipient_name TEXT NOT NULL,
@@ -797,15 +787,13 @@ CREATE TABLE order_shipments (
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
-    CONSTRAINT unique_shipments_id_tenant UNIQUE(id, tenant_id),
+    PRIMARY KEY (tenant_id, order_id),
     CONSTRAINT fk_shipments_order_tenant
         FOREIGN KEY (order_id, tenant_id)
         REFERENCES orders(id, tenant_id)
         ON DELETE CASCADE
 );
 
-CREATE INDEX idx_shipments_tenant ON order_shipments(tenant_id);
-CREATE INDEX idx_shipments_order ON order_shipments(order_id);
 CREATE INDEX idx_shipments_status ON order_shipments(tenant_id, status_id);
 
 
@@ -1044,7 +1032,7 @@ WHERE o.is_active = TRUE;
 -- Detalles de orden con producto
 CREATE VIEW order_items_with_product AS
 SELECT
-    oi.id, oi.order_id, oi.quantity, oi.unit_price,
+    oi.tenant_id, oi.order_id, oi.product_variant_id, oi.quantity, oi.unit_price,
     p.name AS product_name,
     pv.sku,
     oi.subtotal
