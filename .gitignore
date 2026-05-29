@@ -508,3 +508,18 @@ dist/
 .env.*
 !.env.example
 *.local
+
+# ========================================
+# Logs, Caché y Vercel (Consolidado)
+# ========================================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.tsbuildinfo
+.vercel/
+next-env.d.ts
+
+# ========================================
+# IDEs & Editores Adicionales
+# ========================================
+.idea/
