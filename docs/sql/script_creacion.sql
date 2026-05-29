@@ -16,7 +16,7 @@
 --    de índices, espacio en disco y el rendimiento de inserciones a escala.
 --
 -- ============================================================================
--- MAPA DE LA BASE DE DATOS (36 TABLAS EN 5 ÁREAS LÓGICAS)
+-- MAPA DE LA BASE DE DATOS (37 TABLAS EN 5 ÁREAS LÓGICAS)
 -- ============================================================================
 --
 -- AREA 1: CONFIGURACIONES GLOBALES Y CATÁLOGOS (13 Tablas)
@@ -40,30 +40,31 @@
 --  16. user_addresses ........ Direcciones de envío del usuario (compartidas y reutilizables)
 --  17. user_audit_logs ....... Log de acciones de auditoría global por usuario
 --
--- AREA 3: ESTRUCTURA DE TIENDAS / TENANTS (6 Tablas)
+-- AREA 3: ESTRUCTURA DE TIENDAS / TENANTS (7 Tablas)
 --  18. tenants ............... Tiendas registradas en la plataforma SaaS
---  19. tenant_members ........ Administradores y colaboradores de la tienda (N:M con PK Compuesta)
---  20. tenant_settings ....... Ajustes generales de moneda, impuestos y envío de la tienda (1:1 con PK Compuesta)
---  21. tenant_payment_gateways Configuración y credenciales seguras de pasarelas de pago de la tienda
---  22. tenant_email_settings . Configuración del servidor de correo SMTP propio de la tienda
---  23. tenant_invitations .... Invitaciones enviadas para sumar colaboradores a la tienda
+--  19. tenant_domains ........ Dominios personalizados configurados por tienda (PK Compuesta)
+--  20. tenant_members ........ Administradores y colaboradores de la tienda (N:M con PK Compuesta)
+--  21. tenant_settings ....... Ajustes generales de moneda, impuestos y envío de la tienda (1:1 con PK Compuesta)
+--  22. tenant_payment_gateways Configuración y credenciales seguras de pasarelas de pago de la tienda
+--  23. tenant_email_settings . Configuración del servidor de correo SMTP propio de la tienda
+--  24. tenant_invitations .... Invitaciones enviadas para sumar colaboradores a la tienda
 --
 -- AREA 4: CLIENTES Y CATÁLOGO POR TIENDA (6 Tablas)
---  24. customers ............. Relación comprador-tienda y registro de clientes de cada tenant
---  25. categories ............ Categorías de productos aisladas físicamente por tienda
---  26. attribute_templates ... Plantillas de atributos específicos para cada tienda
---  27. attribute_options ..... Valores de atributos disponibles para las variantes de producto
---  28. products .............. Catálogo de productos específicos de cada tienda
---  29. product_variants ...... Variantes de stock específicas de producto por tienda
+--  25. customers ............. Relación comprador-tienda y registro de clientes de cada tenant
+--  26. categories ............ Categorías de productos aisladas físicamente por tienda
+--  27. attribute_templates ... Plantillas de atributos específicos para cada tienda
+--  28. attribute_options ..... Valores de atributos disponibles para las variantes de producto
+--  29. products .............. Catálogo de productos específicos de cada tienda
+--  30. product_variants ...... Variantes de stock específicas de producto por tienda
 --
 -- AREA 5: CARRITOS, VENTAS Y TRANSACCIONES (7 Tablas)
---  30. product_images ........ Imágenes de productos y variantes específicas por tienda
---  31. carts ................. Carritos de compras de clientes logueados o invitados por tienda
---  32. cart_items ............ Variantes agregadas al carrito (PK Compuesta natural ultra-optimizada)
---  33. orders ................ Órdenes de compra con cálculo de stock temporal de Soft Allocation
---  34. order_items ........... Líneas de detalle físicas de la orden (PK Compuesta natural ultra-optimizada)
---  35. order_shipments ....... Envío y snapshot de la dirección de la orden (PK Compuesta natural 1:1)
---  36. payments .............. Transacciones y cobros asociados a las órdenes por tienda
+--  31. product_images ........ Imágenes de productos y variantes específicas por tienda
+--  32. carts ................. Carritos de compras de clientes logueados o invitados por tienda
+--  33. cart_items ............ Variantes agregadas al carrito (PK Compuesta natural ultra-optimizada)
+--  34. orders ................ Órdenes de compra con cálculo de stock temporal de Soft Allocation
+--  35. order_items ........... Líneas de detalle físicas de la orden (PK Compuesta natural ultra-optimizada)
+--  36. order_shipments ....... Envío y snapshot de la dirección de la orden (PK Compuesta natural 1:1)
+--  37. payments .............. Transacciones y cobros asociados a las órdenes por tienda
 --
 -- ============================================================================
 
@@ -349,6 +350,28 @@ CREATE TABLE tenants (
 CREATE INDEX idx_tenants_slug ON tenants(slug);
 CREATE INDEX idx_tenants_is_active ON tenants(is_active) WHERE is_active = TRUE;
 CREATE INDEX idx_tenants_plan ON tenants(tenant_plan_id);
+
+
+-- ============================================================================
+-- TENANT DOMAINS (Dominios personalizados por tienda)
+-- ============================================================================
+
+CREATE TABLE tenant_domains (
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    domain TEXT NOT NULL, -- Ej: 'www.zapatos.com' o 'zapatos.com.ar'
+    is_primary BOOLEAN DEFAULT FALSE,
+    is_verified BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    PRIMARY KEY (tenant_id, domain),
+    CONSTRAINT unique_domain_global UNIQUE (domain)
+);
+
+-- Índice optimizado para el Middleware de Next.js que buscará el dominio entrante
+CREATE INDEX idx_tenant_domains_search ON tenant_domains(domain) WHERE is_verified = TRUE;
+
+-- Índice para garantizar que un tenant solo tenga un dominio primario
+CREATE UNIQUE INDEX unique_primary_domain_per_tenant ON tenant_domains(tenant_id) WHERE is_primary = TRUE;
 
 
 -- ============================================================================
@@ -958,6 +981,10 @@ CREATE TRIGGER update_users_updated_at
 
 CREATE TRIGGER update_tenants_updated_at
     BEFORE UPDATE ON tenants
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_tenant_domains_updated_at
+    BEFORE UPDATE ON tenant_domains
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_tenant_settings_updated_at
