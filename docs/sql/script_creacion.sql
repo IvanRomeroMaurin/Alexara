@@ -255,10 +255,9 @@ CREATE TABLE tenant_members (
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
     CONSTRAINT unique_user_tenant UNIQUE(tenant_id, user_id),
-    CONSTRAINT unique_tenant_members_user_tenant UNIQUE (user_id, tenant_id),
     CONSTRAINT fk_invited_by_tenant
-        FOREIGN KEY (invited_by_id, tenant_id)
-        REFERENCES tenant_members(user_id, tenant_id)
+        FOREIGN KEY (tenant_id, invited_by_id)
+        REFERENCES tenant_members(tenant_id, user_id)
 );
 
 CREATE INDEX idx_tenant_members_tenant ON tenant_members(tenant_id);
