@@ -1,16 +1,17 @@
 {
   "name": "alexara",
   "version": "1.0.0",
+  "packageManager": "pnpm@10.33.0",
   "private": true,
-  "workspaces": [
-    "apps/store",
-    "apps/dashboard",
-    "apps/admin",
-    "packages/*"
-  ],
   "scripts": {
-    "store": "npm run dev --workspace=apps/store",
-    "dashboard": "npm run dev --workspace=apps/dashboard",
-    "admin": "npm run dev --workspace=apps/admin"
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "dev:store": "turbo run dev --filter=store",
+    "dev:dashboard": "turbo run dev --filter=dashboard",
+    "dev:admin": "turbo run dev --filter=admin"
+  },
+  "devDependencies": {
+    "turbo": "^2.9.16"
   }
 }

@@ -1,0 +1,5 @@
+packages:
+  - 'apps/store'
+  - 'apps/dashboard'
+  - 'apps/admin'
+  - 'packages/*'

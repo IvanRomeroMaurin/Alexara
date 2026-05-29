@@ -518,6 +518,7 @@ yarn-error.log*
 *.tsbuildinfo
 .vercel/
 next-env.d.ts
+.turbo/
 
 # ========================================
 # IDEs & Editores Adicionales
