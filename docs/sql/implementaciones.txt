@@ -1,0 +1,45 @@
+1. Línea de Tiempo de la Orden (Historial de Estados) 🕒
+Actualmente, la tabla orders tiene un status_id que se va pisando 
+(ej. pasa de pending a shipped).
+
+El Problema: Pierdes la trazabilidad temporal. Si un cliente 
+pregunta "¿Cuándo se envió mi paquete?", no tienes dónde mirarlo porque la fecha de updated_at se pisa constantemente.
+
+La Solución: Una tabla order_status_history que guarde una fila 
+cada vez que la orden cambia de estado, registrando la fecha y un comentario. Esto te permite dibujar esa clásica barra de progreso verde en el frontend: "Confirmado (Lunes) -> En preparación (Martes) -> Enviado (Hoy)".
+
+2. Cupones de Descuento y Promociones 🎟️
+En la tabla orders tienes una columna discount, pero no hay 
+registro de por qué se aplicó ese descuento.
+
+El Problema: Las tiendas no pueden hacer campañas de marketing
+ (ej. "BLACKFRIDAY20" o un cupón de 10% para la primera compra).
+
+La Solución: Una tabla coupons (código, tipo de descuento, 
+fecha de expiración, límite de usos) vinculada a los carritos
+ y a las órdenes. Es la herramienta número uno de ventas para tus inquilinos.
+
+3. Auditoría de Inventario (Kardex / Stock Movements) 📦
+Si el stock de un producto baja de 10 a 8, el dueño de la 
+}tienda asume que vendió 2. Pero, ¿y si un empleado se equivocó 
+editando el producto, o hubo mercadería defectuosa?
+
+El Problema: Sin un registro histórico de movimientos, 
+los dueños de las tiendas pierden el control de su mercadería y no pueden hacer inventario mensual.
+
+La Solución: Una tabla stock_movements de "solo inserción"
+ (append-only) que registre cada entrada, salida, venta o 
+ devolución de stock. Es un feature Premium masivo en
+  plataformas B2B.
+
+4. Suscripciones del SaaS (Tu modelo de negocio) 💳
+Tenemos la tabla tenant_plans (Free, Pro, Enterprise), pero 
+no tenemos dónde registrar la facturación de tu propia agencia.
+
+El Problema: ¿Cómo sabe el sistema si la tienda de Juan pagó 
+la mensualidad de este mes, o si hay que bloquearle el acceso
+ al panel admin por falta de pago?
+
+La Solución: Tablas como tenant_subscriptions y tenant_invoices 
+para conectar el pago de tus clientes (los dueños de las tiendas) 
+con pasarelas de suscripción recurrente.
