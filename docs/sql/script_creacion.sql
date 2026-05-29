@@ -1,5 +1,70 @@
 -- ============================================================================
--- ECOMMERCE MULTITENANT - SCHEMA COMPLETO 3NF
+-- ECOMMERCE MULTITENANT - ALEXARA SCHEMA COMPLETO 3NF COMPOSITE-OPTIMIZED
+-- ============================================================================
+-- 
+-- PRINCIPIOS DE ARQUITECTURA:
+-- 1. Aislamiento Multitenant Físico Estricto:
+--    Las entidades específicas de una tienda (Tenant) incluyen siempre la columna
+--    'tenant_id' y utilizan Llaves Primarias y Foráneas Compuestas para asegurar 
+--    un particionamiento de datos robusto y evitar fugas de información.
+-- 2. Normalización de Tercera Forma Normal (3NF):
+--    El diseño evita redundancias complejas y mantiene la integridad referencial.
+-- 3. Optimización de Llaves Primarias Naturales Compuestas (Composite-Optimized):
+--    Se han eliminado IDs artificiales redundantes (surrogate keys) y sus B-tree
+--    índices duplicados en las tablas dependientes (tenant_settings, cart_items, 
+--    order_items y order_shipments), mejorando drásticamente el uso de memoria RAM
+--    de índices, espacio en disco y el rendimiento de inserciones a escala.
+--
+-- ============================================================================
+-- MAPA DE LA BASE DE DATOS (36 TABLAS EN 5 ÁREAS LÓGICAS)
+-- ============================================================================
+--
+-- AREA 1: CONFIGURACIONES GLOBALES Y CATÁLOGOS (13 Tablas)
+--   1. attribute_types ........ Tipos de atributos de producto (select, text, number, boolean)
+--   2. product_statuses ...... Estados de visibilidad de producto (draft, active, archived)
+--   3. tenant_plans .......... Planes de suscripción SaaS para las tiendas (free, pro, enterprise)
+--   4. currencies ............ Monedas globales de la plataforma
+--   5. tenant_roles .......... Roles administrativos para las tiendas (owner, admin, etc.)
+--   6. audit_actions ......... Acciones globales registradas en auditorías (create, update, delete)
+--   7. resource_types ........ Tipos de recursos auditables del sistema
+--   8. order_statuses ........ Estados transaccionales de órdenes (pending, confirmed, etc.)
+--   9. shipment_statuses ..... Estados del ciclo de envío (processing, shipped, delivered)
+--  10. payment_statuses ...... Estados del ciclo del pago (pending, approved, rejected, etc.)
+--  11. payment_methods ....... Métodos de pago base nativos (mercado_pago, modo, go_cuotas, etc.)
+--  12. countries ............. Países del sistema global
+--  13. provinces ............. Provincias o Estados federados vinculados a países
+--
+-- AREA 2: ENTIDADES CORE GLOBALES (4 Tablas)
+--  14. users ................. Usuarios globales registrados en la plataforma SaaS
+--  15. user_sessions ......... Sesiones de inicio de sesión de usuario globales
+--  16. user_addresses ........ Direcciones de envío del usuario (compartidas y reutilizables)
+--  17. user_audit_logs ....... Log de acciones de auditoría global por usuario
+--
+-- AREA 3: ESTRUCTURA DE TIENDAS / TENANTS (6 Tablas)
+--  18. tenants ............... Tiendas registradas en la plataforma SaaS
+--  19. tenant_members ........ Administradores y colaboradores de la tienda (N:M con PK Compuesta)
+--  20. tenant_settings ....... Ajustes generales de moneda, impuestos y envío de la tienda (1:1 con PK Compuesta)
+--  21. tenant_payment_gateways Configuración y credenciales seguras de pasarelas de pago de la tienda
+--  22. tenant_email_settings . Configuración del servidor de correo SMTP propio de la tienda
+--  23. tenant_invitations .... Invitaciones enviadas para sumar colaboradores a la tienda
+--
+-- AREA 4: CLIENTES Y CATÁLOGO POR TIENDA (6 Tablas)
+--  24. customers ............. Relación comprador-tienda y registro de clientes de cada tenant
+--  25. categories ............ Categorías de productos aisladas físicamente por tienda
+--  26. attribute_templates ... Plantillas de atributos específicos para cada tienda
+--  27. attribute_options ..... Valores de atributos disponibles para las variantes de producto
+--  28. products .............. Catálogo de productos específicos de cada tienda
+--  29. product_variants ...... Variantes de stock específicas de producto por tienda
+--
+-- AREA 5: CARRITOS, VENTAS Y TRANSACCIONES (7 Tablas)
+--  30. product_images ........ Imágenes de productos y variantes específicas por tienda
+--  31. carts ................. Carritos de compras de clientes logueados o invitados por tienda
+--  32. cart_items ............ Variantes agregadas al carrito (PK Compuesta natural ultra-optimizada)
+--  33. orders ................ Órdenes de compra con cálculo de stock temporal de Soft Allocation
+--  34. order_items ........... Líneas de detalle físicas de la orden (PK Compuesta natural ultra-optimizada)
+--  35. order_shipments ....... Envío y snapshot de la dirección de la orden (PK Compuesta natural 1:1)
+--  36. payments .............. Transacciones y cobros asociados a las órdenes por tienda
+--
 -- ============================================================================
 
 
