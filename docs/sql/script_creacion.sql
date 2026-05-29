@@ -848,7 +848,10 @@ CREATE INDEX idx_payments_status ON payments(tenant_id, status_id);
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = now();
+    -- Solo actualiza si los datos de la fila entera realmente cambiaron
+    IF ROW(NEW.*) IS DISTINCT FROM ROW(OLD.*) THEN
+        NEW.updated_at = now();
+    END IF;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -1088,7 +1091,9 @@ ON CONFLICT (name) DO NOTHING;
 -- Métodos de pago
 INSERT INTO payment_methods (name, description) VALUES
     ('mercado_pago', 'Mercado Pago'),
-    ('credit_card', 'Tarjeta de crédito'),
+    ('go_cuotas', 'Go Cuotas (Débito)'),
+    ('modo', 'MODO (Billetera)'),
+    ('credit_card', 'Tarjeta genérica'),
     ('bank_transfer', 'Transferencia bancaria'),
     ('cash', 'Efectivo')
 ON CONFLICT (name) DO NOTHING;
