@@ -69,7 +69,7 @@ Asegúrate de tener instalado:
 - [Node.js](https://nodejs.org/) (v18+)
 - [pnpm](https://pnpm.io/) (v10+)
 - [.NET SDK](https://dotnet.microsoft.com/) (10.0)
-- PostgreSQL corriendo localmente o mediante Docker.
+- [Docker & Docker Compose](https://www.docker.com/) (Recomendado para la base de datos local)
 
 ### 2. Instalación de Dependencias
 
@@ -81,12 +81,42 @@ cd alexara
 pnpm install
 ```
 
-### 3. Configuración de Variables de Entorno
+### 3. Base de Datos Local (Docker Compose)
+
+Para estandarizar el entorno y evitar la instalación manual de bases de datos, utilizamos Docker para PostgreSQL.
+
+**1. Iniciar la base de datos en segundo plano:**
+Desde la raíz del proyecto, ejecuta:
+```bash
+docker compose up -d
+```
+*Esto descargará PostgreSQL 16 Alpine, creará un volumen de datos persistente y levantará la base de datos `ecommerce_db` en el puerto `5432`.*
+
+**2. Aplicar las migraciones de Entity Framework Core:**
+Asegúrate de tener la herramienta global de EF Core:
+```bash
+dotnet tool install --global dotnet-ef
+```
+Luego corre las migraciones para generar las tablas y el esquema inicial en tu contenedor local de PostgreSQL:
+```bash
+dotnet ef database update --project apps/api/src/alexara.Infrastructure --startup-project apps/api/src/alexara.API
+```
+
+> [!TIP]
+> **Manejo del ciclo de vida en Docker:**
+> - `docker compose stop` — Apaga temporalmente el contenedor para liberar memoria RAM/CPU (los datos se conservan).
+> - `docker compose start` — Vuelve a encender el contenedor que detuviste.
+> - `docker compose down -v` — Remueve el contenedor y **resetea la base de datos a cero**, eliminando todas las tablas y datos del volumen.
+
+### 4. Configuración de Variables de Entorno
 
 **Para el Backend (.NET):**
-1. Ve a `apps/api/src/Web/`.
-2. Duplica el archivo `appsettings.Development.json` y renómbralo a `appsettings.json`.
-3. Configura el string de conexión (`ConnectionStrings:DefaultConnection`) apuntando a tu base de datos PostgreSQL local.
+El backend ya cuenta con el bloque de conexión por defecto apuntando a la base de datos de Docker en [appsettings.json](file:///home/ivan-romero-maurin/projects/volttacore/Alexara/apps/api/src/alexara.API/appsettings.json):
+```json
+"ConnectionStrings": {
+  "DefaultConnection": "Host=localhost;Database=ecommerce_db;Username=postgres;Password=postgres"
+}
+```
 
 **Para los Frontends (Next.js):**
 Crea un archivo `.env.local` en cada una de las carpetas correspondientes (`apps/store`, `apps/dashboard`, `apps/admin`) e incluye la siguiente variable indicando el puerto de tu API local:
@@ -95,14 +125,14 @@ Crea un archivo `.env.local` en cada una de las carpetas correspondientes (`apps
 NEXT_PUBLIC_API_URL=http://localhost:5203
 ```
 
-### 4. Ejecutar el Proyecto
+### 5. Ejecutar el Proyecto
 
 Puedes levantar todo o partes específicas del ecosistema:
 
 **Levantar el Backend:**
 ```bash
 # Abre una terminal nueva
-cd apps/api/src/Web
+cd apps/api/src/alexara.API
 dotnet run
 ```
 
